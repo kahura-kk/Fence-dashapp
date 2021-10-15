@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
-import dash_enterprise_auth as auth
+#import dash_enterprise_auth as auth
 import dash_daq as daq
 import random
 from influxdb import InfluxDBClient
@@ -25,14 +25,14 @@ import plotly.graph_objs as go
 
 db_client = InfluxDBClient(host='127.0.0.1', port="8086")
 
-db_client.switch_database('fence_dekut')
-
-result = db_client.query('select last("voltage") from "fence_dekut"')
+db_client.switch_database('fence_project_db')
+'''
+result = db_client.query('select last("Voltage") from "Fence_dekut"')
 voltage = list(result.get_points())[0]['last']
-
-result = db_client.query('select last("current") from "fence_dekut"')
-current = list(result.get_points())[0]['last']
-
+result = db_client.query('select last("Current") from "Fence_dekut"')
+current = list(result.get_points())[0]['last']'''
+voltage=5
+current=5
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP],
                 meta_tags=[
                     {"name": "viewport", "content": "width=device-width, initial-scale=1"}])
@@ -58,8 +58,8 @@ CONTENT_STYLE = {
 
 navbar = dbc.NavbarSimple(
     children=[
-        dbc.NavItem(dbc.NavLink("Home", href="/")),
-        dbc.NavItem(dbc.NavLink("Dashboard", href="/page-1"))
+        #dbc.NavItem(dbc.NavLink("Home", href="/")),
+        dbc.NavItem(dbc.NavLink("Dashboard", href="/"))
 
     ],
     brand="Fence app",
@@ -114,6 +114,13 @@ dashb =html.Div ([
             # dbc.Col([graph1],xs=12,sm=12,md=12)
         ]),
 
+        dbc.Row([
+            dbc.Col([
+             html.Div(id="dist_text")
+            ]) 
+        ])
+        
+
     ], fluid=True, style={'backgroundColor': '#ebe7eb'}),
     graph1])
 
@@ -129,24 +136,42 @@ app.layout = html.Div([dcc.Location(id="url"), navbar, content,
 
 @app.callback(Output('my-gauge', 'value'), Input('interval_comp', 'n_intervals'))
 def update_voltage(n):
-    result = db_client.query('select last("voltage") from "fence_dekut"')
-    voltage = list(result.get_points())[0]['last']
+    '''result = db_client.query('select last("Voltage") from "Fence_dekut"')
+                voltage = list(result.get_points())[0]['last']'''
+    voltage=random.randint(1,10)
     print(voltage)
     return voltage
 
 
 @app.callback(Output('my-gauge1', 'value'), Input('interval_comp', 'n_intervals'))
 def update_current(n):
-    result = db_client.query('select last("current") from "fence_dekut"')
-    current = list(result.get_points())[0]['last']
+    '''result = db_client.query('select last("Current") from "Fence_dekut"')
+        current = list(result.get_points())[0]['last']'''
+    current=random.randint(1,4)
     print(current)
     return current
+
+@app.callback(Output('dist_text', 'children'), Input('interval_comp', 'n_intervals'),Input('my-gauge1', 'value'), Input('my-gauge', 'value'))
+def update_dist_text(n,voltage1,current1):
+    voltage=random.randint(1,10)
+    current=random.randint(1,4)
+    resistance=(voltage1*1000)/current1
+    resistance=round(resistance,2)
+    #write formula for determining distance
+    return 'Distance:{} KM'.format(resistance)
+
+
+
+    '''result = db_client.query('select last("Current") from "Fence_dekut"')
+        current = list(result.get_points())[0]['last']'''
+    '''result = db_client.query('select last("Voltage") from "Fence_dekut"')
+        voltage = list(result.get_points())[0]['last']'''
 
 
 @app.callback(Output('graph1', 'figure'), Input('interval_comp', 'n_intervals'), Input('check1', 'value'))
 def update_graph(n, check):
     print(check)
-    result = db_client.query('select * from "fence_dekut" where time > now() - 1h')
+    result = db_client.query('select * from "fence_project_db1" where time > now() - 100000h')
     result_list = list(result.get_points())
     # turn to pandas dataframe
     df = pd.DataFrame(result_list)
@@ -182,8 +207,6 @@ def update_graph(n, check):
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
 def render_page_content(pathname):
     if pathname == "/":
-        return (html.P("home page "))
-    elif pathname == "/page-1":
         return dashb
     # If the user tries to reach a different page, return a 404 message
     else:
